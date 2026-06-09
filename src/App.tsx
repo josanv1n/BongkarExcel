@@ -113,7 +113,7 @@ export default function App() {
   const [showExplanation, setShowExplanation] = useState(false);
   
   // Registration and Excel limiting configurations states
-  const [userEmail, setUserEmail] = useState('anita872536@gmail.com');
+  const [userEmail, setUserEmail] = useState(localStorage.getItem('BONGKAR_USER_EMAIL') || '');
   const [userPhone, setUserPhone] = useState(localStorage.getItem('BONGKAR_USER_PHONE') || '');
   const [userCoords, setUserCoords] = useState('');
   const [gettingCoords, setGettingCoords] = useState(false);
@@ -122,7 +122,10 @@ export default function App() {
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   
   // Custom Google Sheets Integration Setup
-  const [appsScriptUrl, setAppsScriptUrl] = useState(localStorage.getItem('BONGKAR_EXCEL_APPS_SCRIPT') || '');
+  const [appsScriptUrl, setAppsScriptUrl] = useState(
+    localStorage.getItem('BONGKAR_EXCEL_APPS_SCRIPT') || 
+    'https://script.google.com/macros/s/AKfycbxkoffyqznnMZkt-1KC3hj5MQ4SCw9p21m_JAN_XKoerC84mK20A_p-UphlxEZ5SXPQ/exec'
+  );
   const [showSettings, setShowSettings] = useState(false);
   
   // Current user access status computed states
@@ -142,23 +145,31 @@ export default function App() {
       .then(res => res.json())
       .then(data => {
         const savedEmail = localStorage.getItem('BONGKAR_USER_EMAIL');
-        const emailToUse = savedEmail || data.email || 'anita872536@gmail.com';
+        const defaultEmail = (data.email === 'anita872536@gmail.com') ? '' : (data.email || '');
+        const emailToUse = savedEmail || defaultEmail;
         setUserEmail(emailToUse);
         
         let urlValue = localStorage.getItem('BONGKAR_EXCEL_APPS_SCRIPT') || '';
-        if (!urlValue && data.defaultAppsScriptUrl) {
-          urlValue = data.defaultAppsScriptUrl;
-          setAppsScriptUrl(data.defaultAppsScriptUrl);
+        if (!urlValue) {
+          urlValue = data.defaultAppsScriptUrl || 'https://script.google.com/macros/s/AKfycbxkoffyqznnMZkt-1KC3hj5MQ4SCw9p21m_JAN_XKoerC84mK20A_p-UphlxEZ5SXPQ/exec';
+          setAppsScriptUrl(urlValue);
         }
         
-        checkUserStatus(emailToUse, urlValue);
+        if (emailToUse) {
+          checkUserStatus(emailToUse, urlValue);
+        }
       })
       .catch(err => {
         console.warn('Could not auto-fetch user email:', err);
-        const savedEmail = localStorage.getItem('BONGKAR_USER_EMAIL') || 'anita872536@gmail.com';
+        const savedEmail = localStorage.getItem('BONGKAR_USER_EMAIL') || '';
         setUserEmail(savedEmail);
-        const savedUrl = localStorage.getItem('BONGKAR_EXCEL_APPS_SCRIPT') || '';
-        checkUserStatus(savedEmail, savedUrl);
+        const savedUrl = localStorage.getItem('BONGKAR_EXCEL_APPS_SCRIPT') || 'https://script.google.com/macros/s/AKfycbxkoffyqznnMZkt-1KC3hj5MQ4SCw9p21m_JAN_XKoerC84mK20A_p-UphlxEZ5SXPQ/exec';
+        if (!localStorage.getItem('BONGKAR_EXCEL_APPS_SCRIPT')) {
+          setAppsScriptUrl(savedUrl);
+        }
+        if (savedEmail) {
+          checkUserStatus(savedEmail, savedUrl);
+        }
       });
 
     // 2. Proactively capture geolocation for registration form so it's ready

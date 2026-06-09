@@ -56,7 +56,7 @@ async function startServer() {
   app.use(express.json());
 
   // API Route: User Email Auto-detect
-  // We can automatically detect user email from environment/headers or fall back to anita872536@gmail.com
+  // We can automatically detect user email from environment/headers or fall back to empty string
   app.get("/api/user-email", (req, res) => {
     // Check if running in standard authenticated system (like behind Google Cloud IAP or Google AI Studio preview info)
     const emailHeader = req.headers["x-goog-authenticated-user-email"] || 
@@ -68,9 +68,9 @@ async function startServer() {
       emailStr = emailHeader.replace("accounts.google.com:", "");
     }
     
-    // Fallback to the active user's actual email of this current run environment
+    // Fallback to the active user's actual email of this current run environment if available
     if (!emailStr) {
-      emailStr = "anita872536@gmail.com";
+      emailStr = "";
     }
 
     res.json({ email: emailStr, defaultAppsScriptUrl: DEFAULT_APPS_SCRIPT_URL });
