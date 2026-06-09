@@ -849,9 +849,17 @@ function doPost(e) {
             </div>
           </motion.div>
 
-          <div className="space-y-1">
-            <h2 className="text-4xl md:text-5xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 select-none">
-              GASKEUN UNPROTECT!
+          <div className="space-y-2">
+            <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 select-none flex flex-row items-center justify-center gap-3">
+              <svg className="w-8 h-8 md:w-11 md:h-11 shrink-0 filter drop-shadow-[0_4px_8px_rgba(16,124,65,0.45)]" viewBox="0 0 512 512" fill="none">
+                <path d="M432,64H176a32,32,0,0,0-32,32V416a32,32,0,0,0,32,32H432a32,32,0,0,0,32-32V96A32,32,0,0,0,432,64Z" fill="#107C41" />
+                <path d="M464,96V416L176,336V176Z" fill="#0b592e" opacity="0.3" />
+                <polygon points="48,128 224,96 224,416 48,384" fill="#0c5a2f" opacity="0.4" />
+                <path d="M224,112L48,144a16,16,0,0,0-16,16V352a16,16,0,0,0,16,16l176,32a16,16,0,0,0,16-16V128A16,16,0,0,0,224,112Z" fill="#21A366" />
+                <path d="M48,144L224,112V124L48,156Z" fill="#ffffff" opacity="0.3" />
+                <path d="M164,188h-26l-26,48l-26-48H60l39,64L60,316h26l26-48l26,48h26l-39-64Z" fill="#ffffff" />
+              </svg>
+              <span>UNPROTECT SHEET</span>
             </h2>
             <p className="text-sm font-medium text-cyan-200/70 uppercase tracking-[0.2em] select-none">
               Lupa password sheet? Santuy, kita beresin sat-set-wat-wet.
@@ -1306,23 +1314,47 @@ function doPost(e) {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 py-1">
-            {/* Shopee Pay */}
-            <span className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[10px] font-black uppercase px-3 py-1.5 rounded-xl tracking-wider select-none">
-              🟧 ShopeePay
-            </span>
-            {/* GoPay */}
-            <span className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[10px] font-black uppercase px-3 py-1.5 rounded-xl tracking-wider select-none">
-              🟦 Gopay
-            </span>
-            {/* OVO */}
-            <span className="bg-purple-600/10 border border-purple-500/30 text-purple-400 text-[10px] font-black uppercase px-3 py-1.5 rounded-xl tracking-wider select-none">
-              🟪 Ovo
-            </span>
-            {/* DANA */}
-            <span className="bg-blue-600/10 border border-blue-500/30 text-blue-400 text-[10px] font-black uppercase px-3 py-1.5 rounded-xl tracking-wider select-none">
-              🟦 Dana
-            </span>
+          <div className="flex flex-wrap items-center justify-center gap-5 py-4">
+            {/* GoPay Logo Card Tile */}
+            <div className="w-24 h-24 bg-[#E5E7EB] rounded-2xl flex flex-col items-center justify-center p-2.5 shadow-lg shadow-black/40 hover:scale-108 transition-all duration-200 cursor-pointer select-none border border-white/10" title="GoPay">
+              <svg viewBox="0 0 100 100" className="w-12 h-12">
+                <circle cx="50" cy="50" r="33" fill="#00AED6" />
+                <path d="M43,38 C43,31 46,26 50,26 C54,26 57,31 57,38" fill="none" stroke="#FFFFFF" strokeWidth="5.2" strokeLinecap="round" />
+                <path d="M33,44 C33,38 39,36 50,36 C61,36 67,38 67,44 L67,58 C67,64 61,67 50,67 C39,67 33,64 33,58 Z" fill="#FFFFFF" />
+                <circle cx="59" cy="52" r="3.5" fill="#00AED6" />
+              </svg>
+              <span className="text-[#1C1C1C] font-black text-[13px] font-sans tracking-tight leading-none mt-1">gopay</span>
+            </div>
+
+            {/* OVO Logo Card Tile */}
+            <div className="w-24 h-24 bg-[#4C2A86] rounded-2xl flex flex-col items-center justify-center p-2.5 shadow-lg shadow-black/40 hover:scale-108 transition-all duration-200 cursor-pointer select-none border border-purple-400/20" title="OVO">
+              <svg viewBox="0 0 150 70" className="w-16 h-auto my-1.5">
+                <circle cx="30" cy="35" r="18" stroke="#FFFFFF" strokeWidth="8.5" fill="none" />
+                <path d="M58,18 L75,51 L92,18" stroke="#FFFFFF" strokeWidth="8.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                <circle cx="120" cy="35" r="18" stroke="#FFFFFF" strokeWidth="8.5" fill="none" />
+              </svg>
+            </div>
+
+            {/* ShopeePay Logo Card Tile */}
+            <div className="w-24 h-24 bg-[#EE4D2D] rounded-2xl flex flex-col items-center justify-center p-2 shadow-lg shadow-black/40 hover:scale-108 transition-all duration-200 cursor-pointer select-none border border-orange-400/20" title="ShopeePay">
+              <svg viewBox="0 0 100 100" className="w-11 h-11">
+                <path d="M38,38 C38,25 62,25 62,38" fill="none" stroke="#FFFFFF" strokeWidth="5.5" strokeLinecap="round" />
+                <path d="M26,40 L74,40 C77,40 79,42 78.5,45.5 L73,79 C72.5,82 69.5,84 66,84 L34,84 C30.5,84 27.5,82 27,79 L21.5,45.5 C21,42 23,40 26,40 Z" fill="#FFFFFF" />
+                {/* Clean, recognizable orange S on brand bag design */}
+                <path d="M55,48 C55,43.5 45,45.5 45,42.5 C45,40.5 47,39.5 50,39.5 C53,39.5 55,40.5 55,42.5 M45,56.5 C45,61 55,59 55,63.5 C55,65.5 53,66.5 50,66.5 C47,66.5 45,65.5 45,63.5" fill="none" stroke="#EE4D2D" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M45,48.5 L55,56.5" stroke="#EE4D2D" strokeWidth="4.5" strokeLinecap="round" />
+              </svg>
+              <span className="text-white font-extrabold text-[9px] tracking-tight leading-none mt-1">ShopeePay</span>
+            </div>
+
+            {/* DANA Logo Card Tile */}
+            <div className="w-24 h-24 bg-[#118EEA] rounded-2xl flex flex-col items-center justify-center p-2 shadow-lg shadow-black/40 hover:scale-108 transition-all duration-200 cursor-pointer select-none border border-blue-400/20" title="DANA">
+              <svg viewBox="0 0 100 100" className="w-11 h-11 my-1">
+                <circle cx="50" cy="50" r="30" fill="#FFFFFF" />
+                <path d="M34,48 C38,42 43,44 48,47 C53,50 59,51 64,45 L64,52 C59,58 53,57 48,54 C43,51 37,49 33,55 Z" fill="#118EEA" />
+              </svg>
+              <span className="text-white font-black text-[11px] tracking-widest leading-none mt-1">DANA</span>
+            </div>
           </div>
 
           {/* Interactive Phone/Account Number Copy Card */}
