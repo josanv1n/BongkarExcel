@@ -135,25 +135,30 @@ export default function App() {
 
   // Initialize and check user's status automatically
   useEffect(() => {
-    // 1. Fetch active browser user email
+    // 1. Fetch active browser user email and configuration
     fetch('/api/user-email')
       .then(res => res.json())
       .then(data => {
-        if (data.email) {
-          setUserEmail(data.email);
-          checkUserStatus(data.email, appsScriptUrl);
-        } else {
-          checkUserStatus('anita872536@gmail.com', appsScriptUrl);
+        const emailToUse = data.email || 'anita872536@gmail.com';
+        setUserEmail(emailToUse);
+        
+        let urlValue = localStorage.getItem('BONGKAR_EXCEL_APPS_SCRIPT') || '';
+        if (!urlValue && data.defaultAppsScriptUrl) {
+          urlValue = data.defaultAppsScriptUrl;
+          setAppsScriptUrl(data.defaultAppsScriptUrl);
         }
+        
+        checkUserStatus(emailToUse, urlValue);
       })
       .catch(err => {
         console.warn('Could not auto-fetch user email:', err);
-        checkUserStatus('anita872536@gmail.com', appsScriptUrl);
+        const savedUrl = localStorage.getItem('BONGKAR_EXCEL_APPS_SCRIPT') || '';
+        checkUserStatus('anita872536@gmail.com', savedUrl);
       });
 
     // 2. Proactively capture geolocation for registration form so it's ready
     requestGeolocationSilently();
-  }, [appsScriptUrl]);
+  }, []);
 
   // Request location silently to pre-fill coordinates
   const requestGeolocationSilently = () => {
@@ -1284,105 +1289,7 @@ function doPost(e) {
 
         </div>
 
-        {/* Google Sheet Integration accordion / section & Documentation */}
-        <div id="sheets-sync-settings" className="mt-8 bg-zinc-950/60 rounded-3xl border border-zinc-800/80 p-5 flex flex-col gap-4">
-          <button
-            onClick={() => {
-              playSound('click', muted);
-              setShowSettings(!showSettings);
-            }}
-            className="flex items-center justify-between text-left w-full text-sm font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 bg-cyan-500/10 rounded-lg text-cyan-400">
-                <Settings className="w-4 h-4 text-cyan-400" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-zinc-200">⚙️ Hubungkan Database Google Sheets Anda</h4>
-                <p className="text-[11px] text-zinc-400 mt-0.5">Custom Google Apps Script URL (Opsional / Mandiri)</p>
-              </div>
-            </div>
-            <span className="text-xs text-zinc-500 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-lg">
-              {showSettings ? 'Tutup ✖' : 'Buka Pengaturan 🛠'}
-            </span>
-          </button>
 
-          {showSettings && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="flex flex-col gap-4 pt-3 border-t border-zinc-900 overflow-hidden"
-            >
-              <form onSubmit={handleSaveSettings} className="space-y-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-mono font-bold tracking-wider text-zinc-400 uppercase">
-                    URL Web App Apps Script:
-                  </label>
-                  <input
-                    type="url"
-                    value={appsScriptUrl}
-                    onChange={(e) => setAppsScriptUrl(e.target.value)}
-                    placeholder="https://script.google.com/macros/s/.../exec"
-                    className="bg-zinc-950 border border-zinc-800 focus:border-cyan-400/80 rounded-xl px-4 py-2.5 text-xs text-zinc-200 placeholder-zinc-600 outline-none w-full"
-                  />
-                  <p className="text-[10px] text-zinc-500 leading-relaxed font-mono">
-                    {appsScriptUrl 
-                      ? '✅ Terhubung ke Apps Script custom Anda.' 
-                      : 'ℹ️ Sedang berjalan dalam mode Simulasi Server Lokal (Mock-Database).'}
-                  </p>
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  {appsScriptUrl && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        playSound('click', muted);
-                        setAppsScriptUrl('');
-                        localStorage.removeItem('BONGKAR_EXCEL_APPS_SCRIPT');
-                        checkUserStatus(userEmail, '');
-                      }}
-                      className="bg-zinc-900 text-red-400 border border-red-500/20 hover:bg-red-500/10 text-xs px-3.5 py-2 rounded-xl transition cursor-pointer"
-                    >
-                      Reset ke Mode Mock
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    className="bg-gradient-to-r from-cyan-400 to-blue-500 text-zinc-950 font-bold text-xs px-5 py-2 rounded-xl cursor-pointer transition duration-150"
-                  >
-                    Simpan & Hubungkan
-                  </button>
-                </div>
-              </form>
-
-              {/* Step-by-Step Interactive Guide */}
-              <div className="border border-zinc-900 bg-zinc-950 p-4 rounded-2xl flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest font-mono">🔥 CARA SETUP GOOGLE SHEETS LU SENDIRI:</span>
-                  <button
-                    type="button"
-                    onClick={handleCopyScript}
-                    className="text-[10px] bg-zinc-900 hover:bg-zinc-800 border border-zinc-805 text-zinc-300 py-1 px-2.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    {copiedScript ? 'Tersalin! ✔' : 'Salin Code.gs 📋'}
-                  </button>
-                </div>
-
-                <ol className="list-decimal pl-4 text-[11px] text-zinc-400 space-y-2 leading-relaxed">
-                  <li>Buat Google Spreadsheet baru di Google Drive lu.</li>
-                  <li>Rename spreadsheet atau gunakan ID Spreadsheet tersebut di Apps Script. ID ada di URL antara <code>/d/</code> dan <code>/edit</code>. (Default ID lu: <code>1tRMjPks698vlieYnjjz_S6TPhnBhsDxvugzJ4z4Awtg</code>).</li>
-                  <li>Lakukan Rename sheet pertama menjadi <strong className="text-zinc-200">"Register"</strong>. Pasang header baris pertama dengan column: <code className="text-yellow-400">Email</code>, <code className="text-yellow-400">Telpon</code>, <code className="text-yellow-400">Koordinat</code>, <code className="text-yellow-400 font-bold">LoginTimeStamp</code>, <code className="text-yellow-400">Status</code>.</li>
-                  <li>Buka <strong className="text-zinc-200">Ekstensi &gt; Apps Script</strong>. Hapus isi file bawaan, lalu paste script <strong className="text-zinc-200">Code.gs</strong> (bisa disalin lewat tombol kanan atas!).</li>
-                  <li>Klik tombol <strong className="text-zinc-200">Terapkan &gt; Penerapan Baru (New Deployment)</strong>. Pilih tipe <strong className="text-zinc-200">Aplikasi Web</strong> (Web App).</li>
-                  <li>Pilih Akses (Who has access): <strong className="text-zinc-200">Siapa saja (Anyone)</strong>, lalu klik Deploy.</li>
-                  <li>Salin alamat <strong className="text-cyan-400">Web App URL</strong> yang dihasilkan oleh Google, paste di kolom input di atas, lalu klik Simpan. SELESAI, data langsung tersinkronisasi murni di Google Drive Anda!</li>
-                </ol>
-              </div>
-            </motion.div>
-          )}
-        </div>
 
         {/* DONATION SECTION (Requested by user) */}
         <div id="donation-section" className="mt-8 bg-zinc-950/40 rounded-3xl border border-zinc-800/50 p-6 flex flex-col gap-5 text-center relative overflow-hidden">

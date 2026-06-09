@@ -6,6 +6,13 @@ import fs from "fs";
 // Simple persistent storage for local mock in case Google Sheets is not configured yet
 const MOCK_DB_FILE = path.join(process.cwd(), "mock_register_db.json");
 
+// Permanent Google Sheets Apps Script Web App URL with environment variable overrides
+const DEFAULT_APPS_SCRIPT_URL = process.env.Web_App_Url || 
+                               process.env.WEB_APP_URL || 
+                               process.env.GOOGLE_APPS_SCRIPT_URL || 
+                               "https://script.google.com/macros/s/AKfycbxkoffyqznnMZkt-1KC3hj5MQ4SCw9p21m_JAN_XKoerC84mK20A_p-UphlxEZ5SXPQ/exec";
+
+
 interface RegisterRow {
   email: string;
   telpon: string;
@@ -66,12 +73,15 @@ async function startServer() {
       emailStr = "anita872536@gmail.com";
     }
 
-    res.json({ email: emailStr });
+    res.json({ email: emailStr, defaultAppsScriptUrl: DEFAULT_APPS_SCRIPT_URL });
   });
 
   // API Route: Check Status
   app.post("/api/check-status", async (req, res) => {
-    const { email, scriptUrl } = req.body;
+    const { email } = req.body;
+    const rawScriptUrl = req.body.scriptUrl;
+    const scriptUrl = (rawScriptUrl && rawScriptUrl.trim()) || DEFAULT_APPS_SCRIPT_URL;
+
     if (!email) {
       return res.status(400).json({ status: "error", message: "Email is required" });
     }
@@ -127,7 +137,10 @@ async function startServer() {
 
   // API Route: Register / Simpan
   app.post("/api/register", async (req, res) => {
-    const { email, telpon, koordinat, scriptUrl } = req.body;
+    const { email, telpon, koordinat } = req.body;
+    const rawScriptUrl = req.body.scriptUrl;
+    const scriptUrl = (rawScriptUrl && rawScriptUrl.trim()) || DEFAULT_APPS_SCRIPT_URL;
+
     if (!email || !telpon) {
       return res.status(400).json({ status: "error", message: "Email dan No Telpon wajib diisi!" });
     }
