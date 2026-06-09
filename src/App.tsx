@@ -530,6 +530,7 @@ export default function App() {
   };
 
   const [copiedDonation, setCopiedDonation] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
   const handleCopyDonation = () => {
     playSound('click', muted);
     navigator.clipboard.writeText("081341300100");
@@ -1431,6 +1432,77 @@ function doPost(e) {
 
           </AnimatePresence>
 
+        </div>
+
+
+
+        {/* SHARE SECTION (Requested by user) */}
+        <div id="share-section" className="mt-8 bg-zinc-950/40 rounded-3xl border border-zinc-800/50 p-6 flex flex-col gap-5 text-center relative overflow-hidden">
+          {/* Subtle decoration */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-[50px] rounded-full pointer-events-none"></div>
+          
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-[10px] font-mono tracking-[0.25em] text-cyan-400 font-black uppercase">📢 BAGIKAN APLIKASI</span>
+            <h3 className="text-base font-display font-black tracking-tight text-white uppercase flex items-center gap-1.5 justify-center">
+              <Share2 className="w-5 h-5 text-cyan-400 shrink-0" />
+              Bagikan Logo & Link ke WhatsApp temen-temen lu!
+            </h3>
+            <p className="text-xs text-zinc-400 max-w-lg mx-auto leading-relaxed">
+              Punya grup rekan kerja atau temen yang sering pusing gegara dapet file Excel ke-lock atau kena Protect Sheet? Bagikan aplikasi ini beserta logo cantiknya biar mereka dapet pencerahan instan!
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch justify-center gap-3 max-w-md mx-auto w-full">
+            {/* Share to WhatsApp */}
+            <a
+              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                "🔥 Bongkar Excel - Hapus Password Protect Sheet Excel Instan! 🗝️⚡\n\n" +
+                "Gak usah pusing nyari password sheet Excel yang ke-lock, tinggal upload langsung beres gratis! No install, 100% aman dan cepat!\n\n" +
+                "Kunjungi Website:\nhttps://Bongkar-Excel.Vercel.App\n\n" +
+                "Logo Aplikasi:\nhttps://jambijohan0-cpu.github.io/Johan/img/BongkarExcel.png"
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => playSound('click', muted)}
+              className="flex-1 bg-[#25D366] hover:bg-[#20ba5a] text-zinc-950 font-black text-xs sm:text-sm py-3.5 px-5 rounded-2xl flex items-center justify-center gap-2 transition transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+            >
+              <svg className="w-4 h-4 fill-current text-zinc-950 shrink-0" viewBox="0 0 24 24">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.743.002-2.602-1.01-5.05-2.85-6.892C16.638 2.128 14.191 1.1 11.603 1.1 6.162 1.1 1.74 5.47 1.736 10.844c-.001 1.637.45 3.23 1.304 4.673l-.991 3.616 3.7-.969z" />
+              </svg>
+              Bagikan ke WhatsApp 💬
+            </a>
+
+            {/* Copy raw share text to Clipboard */}
+            <button
+              onClick={() => {
+                playSound('success', muted);
+                const shareMsg = 
+                  "🔥 Bongkar Excel - Hapus Password Protect Sheet Excel Instan! 🗝️⚡\n\n" +
+                  "Gak usah pusing nyari password sheet Excel yang ke-lock, tinggal upload langsung beres gratis! No install, 100% aman dan cepat!\n\n" +
+                  "Kunjungi Website:\nhttps://Bongkar-Excel.Vercel.App\n\n" +
+                  "Logo Aplikasi:\nhttps://jambijohan0-cpu.github.io/Johan/img/BongkarExcel.png";
+                navigator.clipboard.writeText(shareMsg);
+                setCopiedShare(true);
+                setTimeout(() => setCopiedShare(false), 3000);
+              }}
+              className="flex-1 bg-zinc-800 border border-zinc-700 hover:border-zinc-550 text-zinc-300 hover:text-white hover:bg-zinc-750 font-black text-xs sm:text-sm py-3.5 px-5 rounded-2xl flex items-center justify-center gap-2 transition transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+            >
+              📋 {copiedShare ? 'PESAN & LOGO DISALIN!' : 'SALIN PESAN LINK & LOGO'}
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center gap-4 bg-zinc-950/60 p-4 rounded-xl border border-zinc-900 max-w-sm mx-auto mt-2">
+            <img 
+              src="https://jambijohan0-cpu.github.io/Johan/img/BongkarExcel.png" 
+              alt="Bongkar Excel Logo Small Preview" 
+              className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" 
+              referrerPolicy="no-referrer"
+            />
+            <div className="flex flex-col text-left">
+              <span className="text-[10px] text-zinc-500 font-mono tracking-wide uppercase">OpenGraph / WhatsApp Logo</span>
+              <span className="text-xs text-zinc-300 font-extrabold truncate max-w-[200px]">BongkarExcel.png</span>
+            </div>
+          </div>
         </div>
 
 
