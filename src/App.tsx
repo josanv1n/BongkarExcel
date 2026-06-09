@@ -25,7 +25,8 @@ import {
   MapPin,
   Phone,
   Settings,
-  Share2
+  Share2,
+  Mail
 } from 'lucide-react';
 import JSZip from 'jszip';
 
@@ -118,6 +119,7 @@ export default function App() {
   const [gettingCoords, setGettingCoords] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [registrationSubmitting, setRegistrationSubmitting] = useState(false);
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
   
   // Custom Google Sheets Integration Setup
   const [appsScriptUrl, setAppsScriptUrl] = useState(localStorage.getItem('BONGKAR_EXCEL_APPS_SCRIPT') || '');
@@ -139,7 +141,8 @@ export default function App() {
     fetch('/api/user-email')
       .then(res => res.json())
       .then(data => {
-        const emailToUse = data.email || 'anita872536@gmail.com';
+        const savedEmail = localStorage.getItem('BONGKAR_USER_EMAIL');
+        const emailToUse = savedEmail || data.email || 'anita872536@gmail.com';
         setUserEmail(emailToUse);
         
         let urlValue = localStorage.getItem('BONGKAR_EXCEL_APPS_SCRIPT') || '';
@@ -152,8 +155,10 @@ export default function App() {
       })
       .catch(err => {
         console.warn('Could not auto-fetch user email:', err);
+        const savedEmail = localStorage.getItem('BONGKAR_USER_EMAIL') || 'anita872536@gmail.com';
+        setUserEmail(savedEmail);
         const savedUrl = localStorage.getItem('BONGKAR_EXCEL_APPS_SCRIPT') || '';
-        checkUserStatus('anita872536@gmail.com', savedUrl);
+        checkUserStatus(savedEmail, savedUrl);
       });
 
     // 2. Proactively capture geolocation for registration form so it's ready
@@ -193,7 +198,14 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailToQuery, scriptUrl: scriptUrlToCheck })
       });
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        console.warn("Could not parse status JSON response, falling back to mock check status defaults", text);
+        return;
+      }
       
       if (data.status === 'success' && data.registered) {
         setRegisteredUser(data.user);
@@ -499,10 +511,12 @@ export default function App() {
     }
     
     setRegistrationSubmitting(true);
+    setRegistrationError(null);
     playSound('click', muted);
     
-    // Save phone to localStorage
+    // Save phone and email to localStorage
     localStorage.setItem('BONGKAR_USER_PHONE', userPhone);
+    localStorage.setItem('BONGKAR_USER_EMAIL', userEmail);
 
     try {
       const response = await fetch('/api/register', {
@@ -515,7 +529,17 @@ export default function App() {
           scriptUrl: appsScriptUrl
         })
       });
-      const data = await response.json();
+      
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (jsonErr) {
+        console.error("Failed to parse JSON response:", text);
+        throw new Error(
+          "Gagal mendaftar. Respon dari Server Vercel bukan format JSON yang valid. Pastikan rute API sudah ter-deploy, atau periksa kembali isian Anda."
+        );
+      }
       
       if (data.status === 'success') {
         setIsRegistered(true);
@@ -533,12 +557,15 @@ export default function App() {
         setIsBlocked(true);
         setRegisterCount(data.count || 2);
         playSound('error', muted);
+        setRegistrationError(data.message || "Batas unprotect gratis sudah habis!");
       } else {
         playSound('error', muted);
+        setRegistrationError(data.message || "Gagal melakukan registrasi, cek konfigurasi Google Sheets Apps Script Anda.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       playSound('error', muted);
+      setRegistrationError(err.message || 'Koneksi ke Server gagal. Silakan coba lagi atau cek integrasi Anda.');
     } finally {
       setRegistrationSubmitting(false);
     }
@@ -1540,22 +1567,28 @@ function doPost(e) {
                   </div>
 
                   <div className="flex flex-col gap-4">
-                    {/* Input 1: Email (Auto-detected from active browser user, disabled) */}
+                    {/* Input 1: Email (Fully editable, saved to localStorage) */}
                     <div className="flex flex-col gap-1.5 text-left">
                       <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-mono font-bold tracking-wider text-zinc-550 uppercase flex items-center gap-1">
-                          <Lock className="w-3 h-3 text-emerald-400 shrink-0" />
-                          Alamat Email (Otomatis):
+                        <label className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 uppercase flex items-center gap-1">
+                          <Mail className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                          Alamat Email Gmail Anda:
                         </label>
-                        <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-black uppercase tracking-wide">
-                          Verified Login
+                        <span className="text-[9px] bg-cyan-500/15 text-cyan-400 px-1.5 py-0.5 rounded font-black uppercase tracking-wide">
+                          Bisa Diedit ✏️
                         </span>
                       </div>
                       <input
                         type="email"
                         value={userEmail}
-                        disabled
-                        className="bg-zinc-900 border border-zinc-850 text-zinc-500 rounded-xl px-4 py-3 text-xs w-full cursor-not-allowed outline-none"
+                        onChange={(e) => {
+                          setUserEmail(e.target.value);
+                          localStorage.setItem('BONGKAR_USER_EMAIL', e.target.value);
+                          checkUserStatus(e.target.value, appsScriptUrl);
+                        }}
+                        placeholder="Masukkan alamat email Google Anda..."
+                        required
+                        className="bg-zinc-950 border border-zinc-805 text-white rounded-xl px-4 py-3 text-xs w-full focus:border-cyan-400 outline-none placeholder-zinc-650 font-mono"
                       />
                     </div>
 
@@ -1571,7 +1604,7 @@ function doPost(e) {
                         onChange={(e) => setUserPhone(e.target.value)}
                         placeholder="Contoh: 081234567890"
                         required
-                        className="bg-zinc-950 border border-zinc-800 text-white rounded-xl px-4 py-3 text-xs w-full focus:border-cyan-400 outline-none placeholder-zinc-600 font-mono"
+                        className="bg-zinc-950 border border-zinc-850 text-white rounded-xl px-4 py-3 text-xs w-full focus:border-cyan-400 outline-none placeholder-zinc-650 font-mono"
                       />
                     </div>
 
@@ -1582,7 +1615,7 @@ function doPost(e) {
                           <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                           Lintang Koordinat (GPS):
                         </label>
-                        <span className="text-[9px] text-zinc-500 font-mono italic">
+                        <span className="text-[9px] text-zinc-550 font-mono italic">
                           Tidak perlu diisi
                         </span>
                       </div>
@@ -1601,11 +1634,23 @@ function doPost(e) {
                           )}
                         </div>
                       </div>
-                      <span className="text-[9px] text-zinc-500 leading-relaxed">
+                      <span className="text-[9px] text-zinc-550 leading-relaxed">
                         📍 Sesuai mandat, GPS Lokasi diaktifkan secara otomatis untuk memvalidasi lokasi pendaftaran.
                       </span>
                     </div>
                   </div>
+
+                  {registrationError && (
+                    <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-xl text-xs flex flex-col gap-1 text-left font-sans">
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                        <span>Koneksi / Status Error:</span>
+                      </div>
+                      <span className="text-[11px] leading-relaxed text-zinc-300">
+                        {registrationError}
+                      </span>
+                    </div>
+                  )}
 
                   <div className="flex flex-col gap-2 mt-2">
                     <button
