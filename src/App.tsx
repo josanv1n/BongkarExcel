@@ -193,34 +193,60 @@ export default function App() {
     if (!emailToQuery) return;
     setIsCheckingStatus(true);
     try {
-      const response = await fetch('/api/check-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailToQuery, scriptUrl: scriptUrlToCheck })
-      });
-      const text = await response.text();
-      let data;
+      let data = null;
+      let succeeded = false;
+      
+      // 1. Try local Express API proxy first
       try {
+        const response = await fetch('/api/check-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailToQuery, scriptUrl: scriptUrlToCheck })
+        });
+        const text = await response.text();
         data = JSON.parse(text);
-      } catch (parseErr) {
-        console.warn("Could not parse status JSON response, falling back to mock check status defaults", text);
-        return;
+        succeeded = true;
+      } catch (apiErr) {
+        console.warn("Express API status check failed or is not available. Trying client-side direct request.", apiErr);
       }
       
-      if (data.status === 'success' && data.registered) {
-        setRegisteredUser(data.user);
-        setIsRegistered(true);
-        setRegisterCount(data.count);
-        
-        // Block criteria:
-        // Already used the free 1 unprotection, AND Status column is 1 (blocked).
-        // If status column gets updated to 0 by Admin, then isBlocked becomes false!
-        if (data.count >= 1 && data.user.status === 1) {
-          setIsBlocked(true);
+      // 2. Direct browser fetch fallback (for static hosting platforms like Vercel)
+      if (!succeeded && scriptUrlToCheck && scriptUrlToCheck.startsWith("http")) {
+        try {
+          const directResponse = await fetch(`${scriptUrlToCheck}?email=${encodeURIComponent(emailToQuery)}`, {
+            method: 'GET'
+          });
+          const directText = await directResponse.text();
+          data = JSON.parse(directText);
+          succeeded = true;
+          console.log("Direct client-side status check succeeded:", data);
+        } catch (directErr: any) {
+          console.error("Direct client-side status check also failed:", directErr);
+        }
+      }
+      
+      if (succeeded && data) {
+        if (data.status === 'success' && data.registered) {
+          setRegisteredUser(data.user);
+          setIsRegistered(true);
+          setRegisterCount(data.count);
+          
+          // Block criteria:
+          // Already used the free 1 unprotection, AND Status column is 1 (blocked).
+          // If status column gets updated to 0 by Admin, then isBlocked becomes false!
+          if (data.count >= 1 && data.user && data.user.status === 1) {
+            setIsBlocked(true);
+          } else {
+            setIsBlocked(false);
+          }
         } else {
+          setIsRegistered(false);
           setIsBlocked(false);
+          setRegisterCount(0);
+          setRegisteredUser(null);
         }
       } else {
+        // Fallback to local default states in case both are unreachable, so app stays usable offline
         setIsRegistered(false);
         setIsBlocked(false);
         setRegisterCount(0);
@@ -518,54 +544,122 @@ export default function App() {
     localStorage.setItem('BONGKAR_USER_PHONE', userPhone);
     localStorage.setItem('BONGKAR_USER_EMAIL', userEmail);
 
+    const formattedCoords = userCoords || '=HYPERLINK("http://maps.google.com/?q=-1.59327,103.62144", "📍 Buka Google Maps")';
+
     try {
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: userEmail,
-          telpon: userPhone,
-          koordinat: userCoords || '=HYPERLINK("http://maps.google.com/?q=-1.59327,103.62144", "📍 Buka Google Maps")',
-          scriptUrl: appsScriptUrl
-        })
-      });
-      
-      const text = await response.text();
-      let data;
+      let data = null;
+      let succeeded = false;
+
+      // 1. Try local Express API proxy first
       try {
+        const response = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: userEmail,
+            telpon: userPhone,
+            koordinat: formattedCoords,
+            scriptUrl: appsScriptUrl
+          })
+        });
+        
+        const text = await response.text();
         data = JSON.parse(text);
-      } catch (jsonErr) {
-        console.error("Failed to parse JSON response:", text);
-        throw new Error(
-          "Gagal mendaftar. Respon dari Server Vercel bukan format JSON yang valid. Pastikan rute API sudah ter-deploy, atau periksa kembali isian Anda."
-        );
+        succeeded = true;
+      } catch (apiErr) {
+        console.warn("Express API registration proxy failed or is not available. Trying client-side direct request.", apiErr);
+      }
+
+      // 2. Direct browser fetch fallback (for static hosting platforms like Vercel)
+      if (!succeeded) {
+        if (appsScriptUrl && appsScriptUrl.startsWith("http")) {
+          try {
+            console.log("Executing client-side direct POST registration to Apps Script...");
+            const directResponse = await fetch(appsScriptUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'text/plain' 
+              },
+              body: JSON.stringify({
+                email: userEmail,
+                telpon: userPhone,
+                koordinat: formattedCoords
+              })
+            });
+            const directText = await directResponse.text();
+            try {
+              data = JSON.parse(directText);
+              succeeded = true;
+              console.log("Direct client-side registration succeeded:", data);
+            } catch (jsonErr) {
+              console.warn("Direct Apps Script completed, but response was not JSON. Verifying status via GET request...");
+              await delay(1200);
+              
+              const checkResponse = await fetch(`${appsScriptUrl}?email=${encodeURIComponent(userEmail)}`, {
+                method: 'GET'
+              });
+              const checkText = await checkResponse.text();
+              const checkJson = JSON.parse(checkText);
+              if (checkJson && (checkJson.status === 'success' || checkJson.registered !== undefined)) {
+                data = {
+                  status: (checkJson.user && checkJson.user.status === 1) ? 'blocked' : 'success',
+                  message: 'Pendaftaran Terkirim & Terverifikasi!',
+                  count: checkJson.count || 1
+                };
+                succeeded = true;
+              } else {
+                throw new Error("Pendaftaran terkirim, tetapi status pendaftaran tidak dapat diverifikasi.");
+              }
+            }
+          } catch (directErr: any) {
+            console.error("Direct client-side registration also failed:", directErr);
+            throw new Error(
+              "Gagal mendaftar langsung ke Google Sheets. " +
+              "Pastikan URL Web App Google Apps Script Anda sudah benar di bagian pengaturan (tombol gigi roda), " +
+              "dan Apps Script Anda sudah di-deploy dengan akses 'Anyone'."
+            );
+          }
+        } else {
+          // If no Apps Script url, simulate successful locally
+          console.log("No Apps Script URL configured. Simulating offline success.");
+          data = {
+            status: 'success',
+            message: 'Registrasi Berhasil (Mode Offline/Simulasi)!',
+            count: 1
+          };
+          succeeded = true;
+        }
       }
       
-      if (data.status === 'success') {
-        setIsRegistered(true);
-        setIsBlocked(false);
-        setRegisterCount(1);
-        setShowRegisterModal(false);
-        playSound('success', muted);
-        
-        // Start unprotect automatically since they registered successfully!
-        if (file) {
-          startBongkar();
+      if (succeeded && data) {
+        if (data.status === 'success') {
+          setIsRegistered(true);
+          setIsBlocked(false);
+          setRegisterCount(1);
+          setShowRegisterModal(false);
+          playSound('success', muted);
+          
+          // Start unprotect automatically since they registered successfully!
+          if (file) {
+            startBongkar();
+          }
+        } else if (data.status === 'blocked') {
+          setIsRegistered(true);
+          setIsBlocked(true);
+          setRegisterCount(data.count || 2);
+          playSound('error', muted);
+          setRegistrationError(data.message || "Batas unprotect gratis sudah habis!");
+        } else {
+          playSound('error', muted);
+          setRegistrationError(data.message || "Gagal melakukan registrasi, cek kembali akun Anda.");
         }
-      } else if (data.status === 'blocked') {
-        setIsRegistered(true);
-        setIsBlocked(true);
-        setRegisterCount(data.count || 2);
-        playSound('error', muted);
-        setRegistrationError(data.message || "Batas unprotect gratis sudah habis!");
       } else {
-        playSound('error', muted);
-        setRegistrationError(data.message || "Gagal melakukan registrasi, cek konfigurasi Google Sheets Apps Script Anda.");
+        throw new Error("Gagal memproses pendaftaran. Respon kosong.");
       }
     } catch (err: any) {
       console.error(err);
       playSound('error', muted);
-      setRegistrationError(err.message || 'Koneksi ke Server gagal. Silakan coba lagi atau cek integrasi Anda.');
+      setRegistrationError(err.message || 'Koneksi gagal. Silakan coba lagi atau cek integrasi Anda.');
     } finally {
       setRegistrationSubmitting(false);
     }
