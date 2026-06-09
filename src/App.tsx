@@ -114,6 +114,7 @@ export default function App() {
   
   // Registration and Excel limiting configurations states
   const [userEmail, setUserEmail] = useState(localStorage.getItem('BONGKAR_USER_EMAIL') || '');
+  const [systemDetectedEmail, setSystemDetectedEmail] = useState('');
   const [userPhone, setUserPhone] = useState(localStorage.getItem('BONGKAR_USER_PHONE') || '');
   const [userCoords, setUserCoords] = useState('');
   const [gettingCoords, setGettingCoords] = useState(false);
@@ -144,8 +145,11 @@ export default function App() {
     fetch('/api/user-email')
       .then(res => res.json())
       .then(data => {
+        const detected = data.email || 'anita872536@gmail.com';
+        setSystemDetectedEmail(detected);
+        
         const savedEmail = localStorage.getItem('BONGKAR_USER_EMAIL');
-        const defaultEmail = (data.email === 'anita872536@gmail.com') ? '' : (data.email || '');
+        const defaultEmail = ''; // Force empty for first-time prompt as requested
         const emailToUse = savedEmail || defaultEmail;
         setUserEmail(emailToUse);
         
@@ -1679,9 +1683,21 @@ function doPost(e) {
                           <Mail className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                           Alamat Email Gmail Anda:
                         </label>
-                        <span className="text-[9px] bg-cyan-500/15 text-cyan-400 px-1.5 py-0.5 rounded font-black uppercase tracking-wide">
-                          Bisa Diedit ✏️
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playSound('click', muted);
+                            const cached = localStorage.getItem('BONGKAR_USER_EMAIL') || systemDetectedEmail || 'anita872536@gmail.com';
+                            setUserEmail(cached);
+                            localStorage.setItem('BONGKAR_USER_EMAIL', cached);
+                            checkUserStatus(cached, appsScriptUrl);
+                          }}
+                          className="text-[9px] bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded-md font-bold uppercase tracking-wide flex items-center gap-1 transition cursor-pointer select-none active:scale-95"
+                          title="Klik untuk mengambil alamat email terverifikasi dari browser/sistem cache"
+                        >
+                          <RefreshCw className="w-2.5 h-2.5 animate-spin" style={{ animationDuration: '4s' }} />
+                          Ambil Email Aktif 📥
+                        </button>
                       </div>
                       <input
                         type="email"
