@@ -7,11 +7,27 @@
 var SPREADSHEET_ID = "1tRMjPks698vlieYnjjz_S6TPhnBhsDxvugzJ4z4Awtg";
 
 function doGet(e) {
-  var email = e.parameter.email;
-  if (!email) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Email required" }))
-      .setMimeType(ContentService.MimeType.JSON);
+  // Tambahan Fitur: Mengambil email active user menggunakan Session
+  var action = e ? e.parameter.action : "";
+  var emailParam = e ? e.parameter.email : "";
+  
+  if (action === "getActiveUserEmail" || !emailParam) {
+    try {
+      var activeEmail = Session.getActiveUser().getEmail();
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        email: activeEmail || ""
+      })).setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        message: err.toString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
   }
+
+  // Cek status kecocokan email
+  var email = emailParam;
   
   var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Register");
   if (!sheet) {
@@ -59,7 +75,12 @@ function doPost(e) {
   try {
     postData = JSON.parse(e.postData.contents);
   } catch (err) {
-    postData = e.parameter;
+    postData = e ? e.parameter : null;
+  }
+  
+  if (!postData) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "No data received" }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
   
   var email = postData.email;

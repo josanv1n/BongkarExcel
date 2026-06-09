@@ -76,6 +76,34 @@ async function startServer() {
     res.json({ email: emailStr, defaultAppsScriptUrl: DEFAULT_APPS_SCRIPT_URL });
   });
 
+  // API Route: Fetch Active User Email from Google Apps Script
+  app.get("/api/get-active-user-email", async (req, res) => {
+    const rawScriptUrl = req.query.scriptUrl as string;
+    const scriptUrl = (rawScriptUrl && rawScriptUrl.trim()) || DEFAULT_APPS_SCRIPT_URL;
+
+    if (scriptUrl && scriptUrl.startsWith("http")) {
+      try {
+        console.log(`Proxying active email request to Google Apps Script: ${scriptUrl}`);
+        const response = await fetch(`${scriptUrl}?action=getActiveUserEmail`, {
+          method: "GET",
+          headers: { "Accept": "application/json" }
+        });
+        const text = await response.text();
+        try {
+          const json = JSON.parse(text);
+          return res.json(json);
+        } catch {
+          return res.status(500).json({ status: "error", message: "Failed to parse Apps Script response" });
+        }
+      } catch (err: any) {
+        console.error("Apps Script active user email grab proxy failed:", err.message);
+        return res.status(500).json({ status: "error", message: err.message });
+      }
+    } else {
+      return res.status(400).json({ status: "error", message: "Invalid Script URL" });
+    }
+  });
+
   // API Route: Check Status
   app.post("/api/check-status", async (req, res) => {
     const { email } = req.body;

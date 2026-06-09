@@ -131,6 +131,7 @@ export default function App() {
   
   // Current user access status computed states
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [isFetchingActiveEmail, setIsFetchingActiveEmail] = useState(false);
   const [registeredUser, setRegisteredUser] = useState<any>(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
@@ -1456,10 +1457,10 @@ function doPost(e) {
             {/* Share to WhatsApp */}
             <a
               href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                "🔥 Bongkar Excel - Hapus Password Protect Sheet Excel Instan! 🗝️⚡\n\n" +
+                "🔥 *Bongkar Excel* - Hapus Password Protect Sheet Excel Instan! 🗝️⚡\n\n" +
                 "Gak usah pusing nyari password sheet Excel yang ke-lock, tinggal upload langsung beres gratis! No install, 100% aman dan cepat!\n\n" +
-                "Kunjungi Website:\nhttps://Bongkar-Excel.Vercel.App\n\n" +
-                "Logo Aplikasi:\nhttps://jambijohan0-cpu.github.io/Johan/img/BongkarExcel.png"
+                "Kunjungi Website:\nhttps://bongkar-password.vercel.app/?v=logo\n(Gunakan link di atas agar Logo pratinjau muncul instan!)\n\n" +
+                "Logo Aplikasi resmi:\nhttps://jambijohan0-cpu.github.io/Johan/img/BongkarExcel.png"
               )}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -1477,9 +1478,9 @@ function doPost(e) {
               onClick={() => {
                 playSound('success', muted);
                 const shareMsg = 
-                  "🔥 Bongkar Excel - Hapus Password Protect Sheet Excel Instan! 🗝️⚡\n\n" +
+                  "🔥 *Bongkar Excel* - Hapus Password Protect Sheet Excel Instan! 🗝️⚡\n\n" +
                   "Gak usah pusing nyari password sheet Excel yang ke-lock, tinggal upload langsung beres gratis! No install, 100% aman dan cepat!\n\n" +
-                  "Kunjungi Website:\nhttps://Bongkar-Excel.Vercel.App\n\n" +
+                  "Kunjungi Website:\nhttps://bongkar-password.vercel.app/?v=logo\n\n" +
                   "Logo Aplikasi:\nhttps://jambijohan0-cpu.github.io/Johan/img/BongkarExcel.png";
                 navigator.clipboard.writeText(shareMsg);
                 setCopiedShare(true);
@@ -1757,18 +1758,44 @@ function doPost(e) {
                         </label>
                         <button
                           type="button"
-                          onClick={() => {
+                          disabled={isFetchingActiveEmail}
+                          onClick={async () => {
                             playSound('click', muted);
-                            const cached = localStorage.getItem('BONGKAR_USER_EMAIL') || systemDetectedEmail || 'anita872536@gmail.com';
-                            setUserEmail(cached);
-                            localStorage.setItem('BONGKAR_USER_EMAIL', cached);
-                            checkUserStatus(cached, appsScriptUrl);
+                            if (!appsScriptUrl || !appsScriptUrl.startsWith("http")) {
+                              alert("Alamat URL Apps Script belum valid. Silakan atur atau cek kembali di tombol Pengaturan (ikon Gir) di ujung kanan atas!");
+                              return;
+                            }
+                            setIsFetchingActiveEmail(true);
+                            try {
+                              const res = await fetch(`/api/get-active-user-email?scriptUrl=${encodeURIComponent(appsScriptUrl)}`);
+                              const data = await res.json();
+                              if (data.status === "success" && data.email) {
+                                setUserEmail(data.email);
+                                localStorage.setItem('BONGKAR_USER_EMAIL', data.email);
+                                playSound('success', muted);
+                                checkUserStatus(data.email, appsScriptUrl);
+                              } else {
+                                // Fallback ke lokal cache jika Apps Script mengembalikan string kosong / belum dipasang
+                                const cached = localStorage.getItem('BONGKAR_USER_EMAIL') || systemDetectedEmail || 'anita872536@gmail.com';
+                                setUserEmail(cached);
+                                localStorage.setItem('BONGKAR_USER_EMAIL', cached);
+                                checkUserStatus(cached, appsScriptUrl);
+                              }
+                            } catch (err) {
+                              console.error("Gagal mendeteksi Email Aktif via Apps Script:", err);
+                              const cached = localStorage.getItem('BONGKAR_USER_EMAIL') || systemDetectedEmail || 'anita872536@gmail.com';
+                              setUserEmail(cached);
+                              localStorage.setItem('BONGKAR_USER_EMAIL', cached);
+                              checkUserStatus(cached, appsScriptUrl);
+                            } finally {
+                              setIsFetchingActiveEmail(false);
+                            }
                           }}
-                          className="text-[9px] bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded-md font-bold uppercase tracking-wide flex items-center gap-1 transition cursor-pointer select-none active:scale-95"
-                          title="Klik untuk mengambil alamat email terverifikasi dari browser/sistem cache"
+                          className={`text-[9px] bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded-md font-bold uppercase tracking-wide flex items-center gap-1 transition select-none active:scale-95 disabled:opacity-50 ${isFetchingActiveEmail ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                          title="Klik untuk mendeteksi email Google aktif dari sesi Google Apps Script Anda"
                         >
-                          <RefreshCw className="w-2.5 h-2.5 animate-spin" style={{ animationDuration: '4s' }} />
-                          Ambil Email Aktif 📥
+                          <RefreshCw className={`w-2.5 h-2.5 ${isFetchingActiveEmail ? 'animate-spin' : ''}`} style={!isFetchingActiveEmail ? { animation: 'none' } : undefined} />
+                          {isFetchingActiveEmail ? 'Mencari...' : 'Ambil Email Aktif 📥'}
                         </button>
                       </div>
                       <input
